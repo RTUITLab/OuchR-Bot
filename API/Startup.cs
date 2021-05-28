@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using OuchRBot.API.Models;
+using OuchRBot.API.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,12 +27,14 @@ namespace OuchRBot.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<VkBotOptions>(Configuration.GetSection(nameof(VkBotOptions)));
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
             });
+            services.AddHostedService<VkBotWorker>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
