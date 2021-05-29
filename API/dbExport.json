@@ -1,0 +1,49 @@
+[
+  {
+    "Id": 1,
+    "Name": "Макущенко Максим",
+    "VkPeerId": 73739616,
+    "CurrentStatus": {
+      "Id": 4,
+      "Date": "2021-05-29T16:55:42.9820506+00:00",
+      "NewStatus": 3,
+      "ResumeDocVkId": 0,
+      "SelectedIntership": null,
+      "BotUserId": 1
+    },
+    "ChangesHistory": [
+      {
+        "Id": 1,
+        "Date": "2021-05-29T10:49:04.7835726+00:00",
+        "NewStatus": 0,
+        "ResumeDocVkId": 0,
+        "SelectedIntership": null,
+        "BotUserId": 1
+      },
+      {
+        "Id": 2,
+        "Date": "2021-05-29T16:55:20.3226548+00:00",
+        "NewStatus": 1,
+        "ResumeDocVkId": 601810349,
+        "SelectedIntership": null,
+        "BotUserId": 1
+      },
+      {
+        "Id": 3,
+        "Date": "2021-05-29T16:55:36.3092785+00:00",
+        "NewStatus": 2,
+        "ResumeDocVkId": 0,
+        "SelectedIntership": null,
+        "BotUserId": 1
+      },
+      {
+        "Id": 4,
+        "Date": "2021-05-29T16:55:42.9820506+00:00",
+        "NewStatus": 3,
+        "ResumeDocVkId": 0,
+        "SelectedIntership": null,
+        "BotUserId": 1
+      }
+    ]
+  }
+]

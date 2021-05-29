@@ -11,7 +11,9 @@ namespace OuchRBot.API.Models
         DocumentSent,
         InternshipSelecting,
         DoingTestCase,
+        TestCaseChecking,
         TestCaseDone,
+        MeetTimeUserAccepted,
         MeetScheduled,
         Done
     }

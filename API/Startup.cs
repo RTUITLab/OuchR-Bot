@@ -11,9 +11,10 @@ using Newtonsoft.Json;
 using OuchRBot.API.Database;
 using OuchRBot.API.Models;
 using OuchRBot.API.Services;
-using OuchRBot.API.Services.RemoteServices;
+using OuchRBot.API.Services.RemoteServices.ProfileParser;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -36,7 +37,14 @@ namespace OuchRBot.API
 
             services.AddDbContext<BotDbContext>(db => db.UseInMemoryDatabase("IN_MEMORY_DB"));
             services.AddScoped<MessageHandlerService>();
-            services.AddScoped<IProfileParser, RealProfileParser>();
+            if (false)
+            {
+                services.AddScoped<IProfileParser, MockProfileParser>();
+            }
+            else
+            {
+                services.AddScoped<IProfileParser, RealProfileParser>();
+            }
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -60,6 +68,7 @@ namespace OuchRBot.API
             }
 
             app.UseRouting();
+            app.UseStaticFiles();
 
             app.UseAuthorization();
 
@@ -71,7 +80,7 @@ namespace OuchRBot.API
 
         private void SeedDb(BotDbContext botDbContext)
         {
-            var users = JsonConvert.DeserializeObject<List<BotUser>>(" [{\"Id\":1,\"Name\":\"Макущенко Максим\",\"VkPeerId\":73739616,\"CurrectStatus\":0,\"ChangesHistory\":[{\"Id\":1,\"Date\":\"2021-05-29T10:49:04.7835726+00:00\",\"NewStatus\":0,\"BotUserId\":1}]}]");
+            var users = JsonConvert.DeserializeObject<List<BotUser>>(File.ReadAllText("dbExport.json"));
             botDbContext.Users.AddRange(users);
             botDbContext.SaveChanges();
         }

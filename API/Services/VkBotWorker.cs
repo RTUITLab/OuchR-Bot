@@ -41,9 +41,9 @@ namespace OuchRBot.API.Services
             await commands.InitBotAsync(options.Value.GroupAccessToken);
 
 
-
             commands.OnDocument(HandleMessage);
             commands.OnText(HandleMessage);
+            commands.OnReply(HandleMessage);
 
             commands.OnException((e, token) =>
             {
@@ -75,6 +75,12 @@ namespace OuchRBot.API.Services
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Error while handling message");
+                await api.Messages.SendAsync(new MessagesSendParams
+                {
+                    PeerId = message.Message.PeerId.Value,
+                    Message = "Простите, у нас есть небольшие неполадки, разработчики уже разбираются со сложившейся ситуацией.",
+                    RandomId = new Random().Next()
+                });
             }
         }
     }
