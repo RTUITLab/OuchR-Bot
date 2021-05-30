@@ -54,5 +54,10 @@ namespace OuchRBot.API.Services.RemoteServices.ProfileParser
             }
             return Task.FromResult(list.AsReadOnly());
         }
+
+        public async Task<Intership> GetIntershipInfo(string intershipId)
+        {
+            return (await GetInternshipsAsync(null)).First();
+        }
     }
 }

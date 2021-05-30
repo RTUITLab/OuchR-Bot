@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using OuchRBot.API.Controllers.PublicModels;
 using OuchRBot.API.Database;
 using OuchRBot.API.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace OuchRBot.API.Controllers
@@ -33,63 +36,103 @@ namespace OuchRBot.API.Controllers
 
             foreach (var user in users.Where(u => u.ChangesHistory.Count > 1))
             {
-                var newFinder = new ApiFinder(
-                    user.VkPeerId,
-                    user.Name,
-                    user.Birthday,
-                    user.Education,
-                    user.WorExperience,
-                    user.AvailableInterships,
-                    user.PhotoUrl,
-                    user.ChangesHistory.FirstOrDefault(c => c.NewStatus == ProgressStatus.DocumentSent)?.ResumeDocVkId,
-                    user.ChangesHistory.FirstOrDefault(c => c.NewStatus == ProgressStatus.TestCaseChecking)?.TestResult,
-                    new List<ApiEvent>());
-                finders.Add(newFinder);
-                foreach (var statusChange in user.ChangesHistory)
-                {
-                    var apiStatus = statusChange.NewStatus switch
-                    {
-                        ProgressStatus.NoDocument => ApiStageType.Applications,
-                        ProgressStatus.DocumentSent => ApiStageType.Applications,
-                        ProgressStatus.InternshipSelecting => ApiStageType.Applications,
-                        ProgressStatus.DoingTestCase => ApiStageType.Testing,
-                        ProgressStatus.TestCaseChecking => ApiStageType.Testing,
-                        ProgressStatus.TestCaseDone => ApiStageType.Interview,
-                        ProgressStatus.MeetTimeUserAccepted => ApiStageType.Interview,
-                        ProgressStatus.MeetScheduled => ApiStageType.Interview,
-                        ProgressStatus.Done => ApiStageType.Offer,
-                        _ => throw new Exception($"incorrect new status ")
-                    };
-                    newFinder.Events.Add(new ApiEvent(statusChange.Date, apiStatus));
-                }
-                var lastEvent = newFinder.Events.First();
-                var newList = new List<ApiEvent>();
-                foreach (var result in newFinder.Events.Skip(1))
-                {
-                    if (result.Stage != lastEvent.Stage)
-                    {
-                        newList.Add(lastEvent);
-                        lastEvent = result;
-                    }
-                }
-                newList.Add(lastEvent);
-                newFinder.Events.Clear();
-                newFinder.Events.AddRange(newList);
+                finders.Add(ApiHelpers.MapUserToFinder(user));
+            }
+            
+            return finders;
+        }
+
+        [HttpGet("readyToCheck")]
+        public async Task<ActionResult<List<ApiFinder>>> ReadyToCheckAsync()
+        {
+            var users = await dbContext.Users
+                .Include(u => u.ChangesHistory)
+                .Where(u => u.ChangesHistory.OrderByDescending(h => h.Date).First().NewStatus == ProgressStatus.TestCaseChecking)
+                .ToListAsync();
+            foreach (var user in users)
+            {
+                user.ChangesHistory = user.ChangesHistory.OrderByDescending(c => c.Date).ToList();
+            }
+            var finders = new List<ApiFinder>();
+
+            foreach (var user in users.Where(u => u.ChangesHistory.Count > 1))
+            {
+                finders.Add(ApiHelpers.MapUserToFinder(user));
             }
 
             return finders;
         }
+
+        [HttpGet("inProgress")]
+        public async Task<ActionResult<List<ApiFinder>>> InProgressAsync()
+        {
+            var users = await dbContext.Users
+                .Include(u => u.ChangesHistory)
+                .Where(u => u.ChangesHistory.OrderByDescending(h => h.Date).First().NewStatus == ProgressStatus.DoingTestCase)
+                .ToListAsync();
+            foreach (var user in users)
+            {
+                user.ChangesHistory = user.ChangesHistory.OrderByDescending(c => c.Date).ToList();
+            }
+            var finders = new List<ApiFinder>();
+
+            foreach (var user in users.Where(u => u.ChangesHistory.Count > 1))
+            {
+                finders.Add(ApiHelpers.MapUserToFinder(user));
+            }
+
+            return finders;
+        }
+
+        [HttpGet("waitTimeConfirmation")]
+        public async Task<ActionResult<List<ApiFinder>>> WaitTimeConfirmationAsync()
+        {
+            var users = await dbContext.Users
+                .Include(u => u.ChangesHistory)
+                .Where(u => u.ChangesHistory.OrderByDescending(h => h.Date).First().NewStatus == ProgressStatus.MeetTimeUserAccepted)
+                .ToListAsync();
+            foreach (var user in users)
+            {
+                user.ChangesHistory = user.ChangesHistory.OrderByDescending(c => c.Date).ToList();
+            }
+            var finders = new List<ApiFinder>();
+
+            foreach (var user in users.Where(u => u.ChangesHistory.Count > 1))
+            {
+                finders.Add(ApiHelpers.MapUserToFinder(user));
+            }
+
+            return finders;
+        }
+
+        [HttpGet("scheduledConferences")]
+        public async Task<ActionResult<List<ApiFinder>>> ScheduledConferencesAsync()
+        {
+            var users = await dbContext.Users
+                .Include(u => u.ChangesHistory)
+                .Where(u => u.ChangesHistory.OrderByDescending(h => h.Date).First().NewStatus == ProgressStatus.MeetScheduled)
+                .ToListAsync();
+            foreach (var user in users)
+            {
+                user.ChangesHistory = user.ChangesHistory.OrderByDescending(c => c.Date).ToList();
+            }
+            var finders = new List<ApiFinder>();
+
+            foreach (var user in users.Where(u => u.ChangesHistory.Count > 1))
+            {
+                finders.Add(ApiHelpers.MapUserToFinder(user));
+            }
+
+            return finders;
+        }
+
     }
-    public enum ApiStageType
-    {
-        Applications,
-        Testing,
-        Interview,
-        Offer
-    }
+
     public record ApiEvent(
         DateTimeOffset Date,
-        ApiStageType Stage
+        ApiStageType Stage,
+        DateTimeOffset? MeetStartTime,
+        DateTimeOffset? MeetEndTime
         );
     public record ApiFinder(
         long UserId,
@@ -97,9 +140,10 @@ namespace OuchRBot.API.Controllers
         DateTimeOffset? Birthday,
         string Education,
         string WorkExperience,
+        string CurrentIntership,
         string AvailableInterships,
         string PthotoUrl,
-        long? ResumeId,
+        string ResumeUrl,
         string TestResult,
         List<ApiEvent> Events
         );

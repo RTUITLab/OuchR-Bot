@@ -31,5 +31,6 @@ namespace OuchRBot.API.Models
         }
 
         public List<BotUserStatusChange> ChangesHistory { get; set; }
+        public string CurrentIntership { get; set; }
     }
 }

@@ -78,5 +78,21 @@ namespace OuchRBot.API.Services.RemoteServices.ProfileParser
                 throw;
             }
         }
+
+        public async Task<Intership> GetIntershipInfo(string intershipId)
+        {
+            try
+            {
+                var client = new HttpClient();
+                
+                var result = await client.GetStringAsync(options.Value.GetOneIntershipsUrl + intershipId);
+                return JsonConvert.DeserializeObject<Intership>(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, $"Can't get interships by {options.Value.GetOneIntershipsUrl}");
+                throw;
+            }
+        }
     }
 }

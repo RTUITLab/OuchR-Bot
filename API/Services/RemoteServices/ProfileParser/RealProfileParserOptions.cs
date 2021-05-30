@@ -9,5 +9,6 @@ namespace OuchRBot.API.Services.RemoteServices.ProfileParser
     {
         public string CreateMeetingUrl { get; set; }
         public string GetIntershipsUrl { get; set; }
+        public string GetOneIntershipsUrl { get; set; }
     }
 }

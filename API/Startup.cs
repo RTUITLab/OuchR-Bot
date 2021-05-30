@@ -35,10 +35,11 @@ namespace OuchRBot.API
         {
             services.Configure<VkBotOptions>(Configuration.GetSection(nameof(VkBotOptions)));
             services.Configure<RealProfileParserOptions>(Configuration.GetSection(nameof(RealProfileParserOptions)));
+            services.Configure<CalendarOptions>(Configuration.GetSection(nameof(CalendarOptions)));
 
             services.AddDbContext<BotDbContext>(db => db.UseInMemoryDatabase("IN_MEMORY_DB"));
             services.AddScoped<MessageHandlerService>();
-            if (true)
+            if (false)
             {
                 services.AddScoped<IProfileParser, MockProfileParser>();
             }

@@ -13,9 +13,12 @@ namespace OuchRBot.API.Models
         public long ResumeDocVkId { get; set; }
         public string SelectedIntership { get; set; }
         public string TestResult { get; set; }
-        public DateTimeOffset MeetStartTime { get; set; }
-        public TimeSpan MeetDuration { get; set; }
+        public DateTimeOffset? MeetStartTime { get; set; }
+        public TimeSpan? MeetDuration { get; set; }
         public BotUser BotUser { get; set; }
         public int BotUserId { get; set; }
+        public string ResumeLink { get; set; }
+        public string ZoomLink { get; set; }
+        public string MeetCalendarUId { get; set; }
     }
 }

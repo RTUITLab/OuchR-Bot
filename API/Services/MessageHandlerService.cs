@@ -32,6 +32,7 @@ namespace OuchRBot.API.Services
     public class MessageHandlerService
     {
         private const string SUBMIT_INTERSHIP = "sub_intership:";
+        private const string DECLINE_INTERSHIP = "dec_intership:";
         private const string SUBMIT_MEET_TIME = "sub_meet_time:";
 
         private readonly BotDbContext dbContext;
@@ -54,16 +55,16 @@ namespace OuchRBot.API.Services
             this.logger = logger;
         }
 
-        
+
 
         public async Task HandleMessage(IVkApi api, MessageNew message, CancellationToken cancellationToken)
         {
-            var user = await GetBotUserInfoAsync(message.Message.PeerId.Value, api);
+            var (user, isFirstTime) = await GetBotUserInfoAsync(message.Message.PeerId.Value, api);
 
             switch (user.CurrentStatus.NewStatus)
             {
                 case ProgressStatus.NoDocument:
-                    await HandleNoDocumentStatus(api, user, message, cancellationToken);
+                    await HandleNoDocumentStatus(api, user, isFirstTime, message, cancellationToken);
                     break;
                 case ProgressStatus.DocumentSent:
                 //break;
@@ -123,22 +124,22 @@ namespace OuchRBot.API.Services
                     MeetDuration = jsonPayload.To - jsonPayload.From
                 });
                 // TODO
-                Task.Run(async () =>
-                {
-                    await Task.Delay(5000);
+                //Task.Run(async () =>
+                //{
+                //    await Task.Delay(5000);
 
-                    logger.LogInformation($"try to approve time");
-                    try
-                    {
-                        var response = await new HttpClient().PostAsync($"http://localhost:5000/api/controlflow/approveTime/{user.VkPeerId}", null);
-                        logger.LogInformation(response.StatusCode.ToString());
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "can't send request");
-                    }
+                //    logger.LogInformation($"try to approve time");
+                //    try
+                //    {
+                //        var response = await new HttpClient().PostAsync($"http://localhost:5000/api/controlflow/approveTime/{user.VkPeerId}", null);
+                //        logger.LogInformation(response.StatusCode.ToString());
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        logger.LogWarning(ex, "can't send request");
+                //    }
 
-                });
+                //});
 
                 return;
             }
@@ -159,7 +160,7 @@ namespace OuchRBot.API.Services
             {
                 AccessToken = options.Value.GroupAccessToken
             });
-            var currentUser = await GetBotUserInfoAsync(peerId, api);
+            var (currentUser, _) = await GetBotUserInfoAsync(peerId, api);
             if (currentUser.CurrentStatus.NewStatus != ProgressStatus.TestCaseChecking)
             {
                 return new ApproveError($"User {currentUser.Name} not in waiting for check mode");
@@ -189,7 +190,7 @@ namespace OuchRBot.API.Services
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = peerId,
-                Message = "Ваше решеине принято, время выбрать корретное время", // TODO
+                Message = "Отличные новости! Ваше решение очень понравилось нашим специалистам, мы готовы пригласить вас на онлайн-собеседование. Теперь вам нужно выбрать время для онлайн-встречи в Zoom с нашим HR-специалистом.",
                 RandomId = RandomInt,
                 Keyboard = keyboardBuilder.Build()
             });
@@ -204,7 +205,7 @@ namespace OuchRBot.API.Services
             {
                 AccessToken = options.Value.GroupAccessToken
             });
-            var currentUser = await GetBotUserInfoAsync(peerId, api);
+            var (currentUser, _) = await GetBotUserInfoAsync(peerId, api);
             if (currentUser.CurrentStatus.NewStatus != ProgressStatus.MeetTimeUserAccepted)
             {
                 return new ApproveError($"User {currentUser.Name} not in waiting for accept time");
@@ -212,15 +213,30 @@ namespace OuchRBot.API.Services
 
             logger.LogInformation("approve time");
 
+
+            var intershipInfo = await profileParser.GetIntershipInfo(currentUser.ChangesHistory.Last(h => h.NewStatus == ProgressStatus.DoingTestCase).SelectedIntership);
+
+
             var url = await profileParser.CreateMeeting(new MeettingInfo(
-                currentUser.ChangesHistory.Last(h => h.NewStatus == ProgressStatus.DoingTestCase).SelectedIntership + " " + currentUser.Name, 
-                currentUser.CurrentStatus.MeetStartTime.DateTime,
-                currentUser.CurrentStatus.MeetDuration.TotalMinutes));
+                intershipInfo.Title + " " + currentUser.Name,
+                currentUser.CurrentStatus.MeetStartTime.Value.DateTime,
+                currentUser.CurrentStatus.MeetDuration.Value.TotalMinutes));
+
+            currentUser.ChangesHistory.Add(new BotUserStatusChange
+            {
+                Date = DateTimeOffset.UtcNow,
+                ZoomLink = url.Zoom,
+                MeetCalendarUId = url.Calendar
+            });
 
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = peerId,
-                Message = url.Zoom,
+                Message = @$"Собеседование с вами будет проводить Зинаида Котова.
+Ссылка на Zoom-конференцию: {url.Zoom}
+
+Чтобы собеседование прошло комфортно, позаботьтесь о том, чтобы вас не отвлекали посторонние звуки, камера и микрофон работали исправно, а интернет-соединение работало стабильно. Рекомендуем вам подключаться по ссылке за 5 минут до назначенного времени.
+    ",
                 RandomId = RandomInt,
             });
             return "Ok";
@@ -228,7 +244,7 @@ namespace OuchRBot.API.Services
 
         private async Task HandleDonigReply(IVkApi api, BotUser user, MessageNew message)
         {
-            
+
 
             if (message.Message.Text?.Contains("/") != true)
             {
@@ -253,32 +269,73 @@ namespace OuchRBot.API.Services
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = message.Message.PeerId.Value,
-                Message = "Ваше решение принято, мы ответим вам в течение пяти рабочих дней.",
+                Message = "Спасибо, теперь нам нужно немного времени, чтобы проверить ваше решение. Ожидайте ответа в течение трех дней и будьте готовы к приглашению на онлайн-собеседование!",
                 RandomId = RandomInt
             });
 
             // Do it from controller
-            Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                logger.LogInformation($"try to approve task {user.CurrentStatus.Id}");
-                try
-                {
-                    await new HttpClient().PostAsync($"http://localhost:5000/api/controlflow/approveTestResults/{user.VkPeerId}", null);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "can't send request");
-                }
-            });
+            //Task.Run(async () =>
+            //{
+            //    await Task.Delay(500);
+            //    logger.LogInformation($"try to approve task {user.CurrentStatus.Id}");
+            //    try
+            //    {
+            //        await new HttpClient().PostAsync($"http://localhost:5000/api/controlflow/approveTestResults/{user.VkPeerId}", null);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        logger.LogWarning(ex, "can't send request");
+            //    }
+            //});
         }
 
         private async Task HandleNoDocumentStatus(
             IVkApi api,
             BotUser user,
+            bool isFirstTime,
             MessageNew message,
             CancellationToken cancellationToken)
         {
+            if (isFirstTime)
+            {
+                await api.Messages.SendAsync(new MessagesSendParams
+                {
+                    PeerId = message.Message.PeerId.Value,
+                    Message = @"Здравствуйте! Мы очень рады, что вас заинтересовала возможность присоединиться к команде Росатома. Хотите попробовать свои силы и начать карьеру в атомной отрасли прямо сейчас?",
+                    RandomId = RandomInt,
+                    Keyboard = new KeyboardBuilder().SetInline(true)
+                        .AddButton("Не сейчас", "nope", color: KeyboardButtonColor.Default)
+                        .AddButton("Конечно", "sure", color: KeyboardButtonColor.Primary)
+                        .Build()
+                });
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(message.Message.Payload))
+            {
+                if (message.Message.Payload.Contains("sure"))
+                {
+                    await api.Messages.SendAsync(new MessagesSendParams
+                    {
+                        PeerId = message.Message.PeerId.Value,
+                        Message = $"Пришлите нам свое резюме в формате PDF, чтобы мы могли предложить интересные вакансии по вашему профилю.",
+                        RandomId = RandomInt
+                    });
+                    return;
+                }
+                if (message.Message.Payload.Contains("nope"))
+                {
+                    await api.Messages.SendAsync(new MessagesSendParams
+                    {
+                        PeerId = message.Message.PeerId.Value,
+                        Message = $"Что ж, не сейчас, так не сейчас, ничего страшного. Если вдруг вы захотите узнать какие вакансии могут вам подойти, просто отправьте свое резюме в формате PDF.",
+                        RandomId = RandomInt
+                    });
+                    return;
+                }
+                return;
+            }
+
             if (message.Message.Attachments.Count == 0)
             {
                 await api.Messages.SendAsync(new MessagesSendParams
@@ -305,7 +362,8 @@ namespace OuchRBot.API.Services
             {
                 Date = DateTimeOffset.UtcNow,
                 NewStatus = ProgressStatus.DocumentSent,
-                ResumeDocVkId = resume.Id.Value
+                ResumeDocVkId = resume.Id.Value,
+                ResumeLink = resume.Uri
             });
 
 
@@ -316,10 +374,14 @@ namespace OuchRBot.API.Services
             foreach (var intership in profileInfo)
             {
                 keyboardBuilder
-                    .AddButton(intership.Title.Length > 35 ? intership.Title.Substring(0, 35) + "..." : intership.Title, $"{SUBMIT_INTERSHIP}{intership.Id}")
+                    .AddButton(
+                    intership.Title.Length > 35 ? intership.Title.Substring(0, 35) + "..." : intership.Title,
+                    $"{SUBMIT_INTERSHIP}{intership.Id}",
+                    KeyboardButtonColor.Primary)
                     .AddLine();
             }
-
+            keyboardBuilder.AddButton("Мне ничего не подходит", DECLINE_INTERSHIP);
+            user.AvailableInterships = string.Join(", ", profileInfo.Select(p => p.Title));
             user.ChangesHistory.Add(new BotUserStatusChange
             {
                 Date = DateTimeOffset.UtcNow,
@@ -331,7 +393,8 @@ namespace OuchRBot.API.Services
                 PeerId = message.Message.PeerId.Value,
                 Message = BuildIntershipsIntros(profileInfo),
                 RandomId = RandomInt,
-                Keyboard = keyboardBuilder.Build()
+                Keyboard = keyboardBuilder.Build(),
+                DontParseLinks = true
             });
         }
 
@@ -344,10 +407,9 @@ namespace OuchRBot.API.Services
             foreach (var intership in interships)
             {
                 builder.AppendLine();
-                builder.AppendLine(intership.Description);
+                builder.AppendLine(intership.Title);
                 builder.AppendLine(intership.Url);
             }
-            
 
             return builder.ToString();
         }
@@ -363,6 +425,10 @@ namespace OuchRBot.API.Services
                     DocMessageType.Doc,
                     message.Message.PeerId.Value,
                     $"Тестовое задание.pdf");
+
+                var intershipInfo = await profileParser.GetIntershipInfo(payload.Button.Substring(SUBMIT_INTERSHIP.Length));
+
+                user.CurrentIntership = intershipInfo.Title;
                 user.ChangesHistory.Add(new BotUserStatusChange
                 {
                     Date = DateTimeOffset.UtcNow,
@@ -372,14 +438,26 @@ namespace OuchRBot.API.Services
                 await api.Messages.SendAsync(new MessagesSendParams
                 {
                     PeerId = message.Message.PeerId.Value,
-                    Message = @"Тут мы пошлем тестовое задание.
+                    Message = @"Отличный выбор! 
+Направляем вам тестовое задание. Напоминаем, что выполнить его нужно в течение 7 дней.  Игра началась!
 
-Ответьте на это сообщение для сдачи задания. В сообщении приложите единственную строку - id публично доступного docker образа. 
+В сообщении приложите единственную строку - id публично доступного docker образа.
 Например - clue/json-server
 
 На выполнение задания у вас есть 7 дней, игра началась!",
                     RandomId = RandomInt,
                     Attachments = new List<MediaAttachment> { uploadedDocument }
+                });
+                return;
+            }
+            if (payload.Button?.Contains(DECLINE_INTERSHIP) == true)
+            {
+                await api.Messages.SendAsync(new MessagesSendParams
+                {
+                    PeerId = message.Message.PeerId.Value,
+                    RandomId = RandomInt,
+                    Message = @"Возможно, для вас сейчас нет подходящих вакансий. С другими открытыми позициями вы можете ознакомиться по ссылке: https://edu.greenatom.ru/
+Также мы постараемся присылать те вакансии, которые могут вас заинтересовать."
                 });
                 return;
             }
@@ -397,7 +475,7 @@ namespace OuchRBot.API.Services
             logger.LogInformation(JsonConvert.SerializeObject(users, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
         }
 
-        private async Task<BotUser> GetBotUserInfoAsync(long peerId, IVkApi api)
+        private async Task<(BotUser, bool isFirstTime)> GetBotUserInfoAsync(long peerId, IVkApi api)
         {
             var targetUser = await dbContext.Users
                 .Include(u => u.ChangesHistory)
@@ -405,7 +483,7 @@ namespace OuchRBot.API.Services
 
             if (targetUser != null)
             {
-                return targetUser;
+                return (targetUser, false);
             }
             var targetUserInfoList = await api.Users.GetAsync(new long[] { peerId }, ProfileFields.Photo100);
             var targetUserInfo = targetUserInfoList.Single();
@@ -426,7 +504,7 @@ namespace OuchRBot.API.Services
             dbContext.Users.Add(targetUser);
             await dbContext.SaveChangesAsync();
             logger.LogInformation($"saved user {targetUser.Id}");
-            return targetUser;
+            return (targetUser, true);
         }
     }
 }
