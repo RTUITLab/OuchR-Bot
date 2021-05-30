@@ -9,7 +9,7 @@ namespace OuchRBot.API.Services.RemoteServices.ProfileParser
 {
     public record MettingCreateResponse(string Zoom, string Calendar);
     public record MeettingInfo(string Name, DateTime Time, double Duration, string Password = "not-secure");
-    public record Intership(string Id, string Url, string Title, string Description);
+    public record Intership(string Id, string Url, string Title, string Description, string Competencies);
 
     public interface IProfileParser
     {

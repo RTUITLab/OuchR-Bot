@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Dumps\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
 </Project>

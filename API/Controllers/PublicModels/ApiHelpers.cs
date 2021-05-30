@@ -20,7 +20,8 @@ namespace OuchRBot.API.Controllers.PublicModels
                 ProgressStatus.TestCaseDone => ApiStageType.Interview,
                 ProgressStatus.MeetTimeUserAccepted => ApiStageType.Interview,
                 ProgressStatus.MeetScheduled => ApiStageType.Interview,
-                ProgressStatus.Done => ApiStageType.Offer,
+                ProgressStatus.Offer => ApiStageType.Offer,
+                ProgressStatus.Work => ApiStageType.Offer,
                 _ => throw new Exception($"incorrect new status ")
             };
         }

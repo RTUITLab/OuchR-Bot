@@ -47,6 +47,10 @@ namespace OuchRBot.API
             {
                 services.AddScoped<IProfileParser, RealProfileParser>();
             }
+            if (true)
+            {
+                services.AddHostedService<Dumper>();
+            }
             services.AddControllers()
                 .AddNewtonsoftJson(op => op.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
             services.AddSwaggerGen(c =>

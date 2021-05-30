@@ -37,10 +37,10 @@ namespace OuchRBot.API.Services.RemoteServices.ProfileParser
         {
             var list = new List<Intership>
             {
-                new Intership("2", "http://rtuitlab.dev#nut", "Собиратель орехов", "11"),
-                new Intership("3", "http://rtuitlab.dev#front", "Frontend разработчик", "11"),
-                new Intership("4", "http://rtuitlab.dev#back", "Backdoor разработчик", "11"),
-                new Intership("5", "http://rtuitlab.dev#ml", "ML разработчик", "11"),
+                new Intership("2", "http://rtuitlab.dev#nut", "Собиратель орехов", "11", ""),
+                new Intership("3", "http://rtuitlab.dev#front", "Frontend разработчик", "11", ""),
+                new Intership("4", "http://rtuitlab.dev#back", "Backdoor разработчик", "11", ""),
+                new Intership("5", "http://rtuitlab.dev#ml", "ML разработчик", "11", ""),
             };
             int n = list.Count;
             var rnd = new Random();

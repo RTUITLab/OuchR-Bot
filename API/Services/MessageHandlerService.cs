@@ -79,26 +79,116 @@ namespace OuchRBot.API.Services
                     await HandleMeetTimeSelected(api, user, message);
                     break;
                 case ProgressStatus.MeetScheduled:
-                //break;
-                case ProgressStatus.Done:
-                //break;
+                    await HandleMessageWhileScheduled(api, user, message);
+                    break;
+                case ProgressStatus.Offer:
+                    await HandleMessageWhileOffer(api, user, message);
+                    break;
+                case ProgressStatus.Work:
+                    await api.Messages.SendAsync(new MessagesSendParams
+                    {
+                        PeerId = message.Message.PeerId.Value,
+                        Message = "Вы произвели отличное впечатление! В ближайшее время с вами свяжется наш HR-специалист, чтобы мы могли продолжить сотрудничество. О дальнейших шагах мы сообщим вам лично.",
+                        RandomId = RandomInt
+                    });
+                    break;
                 default:
                     await api.Messages.SendAsync(new MessagesSendParams
                     {
                         PeerId = message.Message.PeerId.Value,
                         Message = "Простите, мы пока не знаем, что с вами делать",
-                        RandomId = RandomInt,
-                        Keyboard = new KeyboardBuilder()
-                                            .AddButton("Привет Текст", "нагрузка", KeyboardButtonColor.Negative)
-                                            .SetInline(true)
-                                            .AddLine()
-                                            .AddButton("Отметить текст", "другая нагрузка", KeyboardButtonColor.Primary)
-                                            .Build()
+                        RandomId = RandomInt
                     });
                     break;
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task HandleMessageWhileOffer(IVkApi api, BotUser user, MessageNew message)
+        {
+            if (!string.IsNullOrEmpty(message.Message.Payload))
+            {
+                if (message.Message.Payload.Contains("agr"))
+                {
+                    await api.Messages.SendAsync(new MessagesSendParams
+                    {
+                        PeerId = message.Message.PeerId.Value,
+                        Message = $"Вы произвели отличное впечатление! В ближайшее время с вами свяжется наш HR-специалист, чтобы мы могли продолжить сотрудничество. О дальнейших шагах мы сообщим вам лично.",
+                        RandomId = RandomInt
+                    });
+                    user.ChangesHistory.Add(new BotUserStatusChange
+                    {
+                        Date = DateTimeOffset.UtcNow,
+                        NewStatus = ProgressStatus.Work
+                    });
+                    return;
+                }
+                if (message.Message.Payload.Contains("dis"))
+                {
+                    await api.Messages.SendAsync(new MessagesSendParams
+                    {
+                        PeerId = message.Message.PeerId.Value,
+                        Message = $"Редиска, вы, товарищь.",
+                        RandomId = RandomInt
+                    });
+                    user.ChangesHistory.Add(new BotUserStatusChange
+                    {
+                        Date = DateTimeOffset.UtcNow,
+                        NewStatus = ProgressStatus.NoDocument
+                    });
+                    return;
+                }
+            }
+        }
+
+        private async Task HandleMessageWhileScheduled(IVkApi api, BotUser user, MessageNew message)
+        {
+            if (!string.IsNullOrEmpty(message.Message.Payload) && message.Message.Payload.Contains("loose"))
+            {
+                await api.Messages.SendAsync(new MessagesSendParams
+                {
+                    PeerId = message.Message.PeerId.Value,
+                    Message = $"Большое спасибо, что уделили нам время! Если хотите попробовать еще раз, пришлите нам свое резюме в формате PDF.",
+                    RandomId = RandomInt
+                });
+                user.ChangesHistory.Add(new BotUserStatusChange
+                {
+                    Date = DateTimeOffset.UtcNow,
+                    NewStatus = ProgressStatus.NoDocument
+                });
+                return;
+            }
+
+            if (message.Message.Text == "/offer")
+            {
+                await api.Messages.SendAsync(new MessagesSendParams
+                {
+                    PeerId = message.Message.PeerId.Value,
+                    Message = $"Вам выдано приглашение на работу! Поздравляем!",
+                    RandomId = RandomInt,
+                    Keyboard = new KeyboardBuilder().SetInline()
+                        .AddButton("Отказаться от предложения", "dis")
+                        .AddButton("Согласиться", "agr", KeyboardButtonColor.Primary)
+                        .Build()
+                });
+                user.ChangesHistory.Add(new BotUserStatusChange
+                {
+                    Date = DateTimeOffset.UtcNow,
+                    NewStatus = ProgressStatus.Offer
+                });
+                return;
+            }
+
+            await api.Messages.SendAsync(new MessagesSendParams
+            {
+                PeerId = message.Message.PeerId.Value,
+                Message = $"С нетерпением ждем вас на встрече, которая запланирована на {user.CurrentStatus.MeetStartTime.Value:dd.MM.yyyy HH:mm}.",
+                RandomId = RandomInt,
+                Keyboard = new KeyboardBuilder().SetInline()
+                    .AddButton("Отказаться от собеседования", "loose")
+                    .Build()
+            });
         }
 
         private record MeetTime(DateTimeOffset From, DateTimeOffset To);
@@ -113,7 +203,7 @@ namespace OuchRBot.API.Services
                 await api.Messages.SendAsync(new MessagesSendParams
                 {
                     PeerId = message.Message.PeerId,
-                    Message = $"Отлично, осталось дождаться подтверждения времени от HR специалиста!", // TODO
+                    Message = $"Отлично, осталось дождаться подтверждения времени от HR специалиста!",
                     RandomId = RandomInt
                 });
                 user.ChangesHistory.Add(new BotUserStatusChange
@@ -146,7 +236,7 @@ namespace OuchRBot.API.Services
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = message.Message.PeerId,
-                Message = $"Вам необходимо выбрать время собеседования", // TODO
+                Message = $"Вам необходимо выбрать время собеседования.",
                 RandomId = RandomInt
             });
         }
@@ -216,7 +306,6 @@ namespace OuchRBot.API.Services
 
             var intershipInfo = await profileParser.GetIntershipInfo(currentUser.ChangesHistory.Last(h => h.NewStatus == ProgressStatus.DoingTestCase).SelectedIntership);
 
-
             var url = await profileParser.CreateMeeting(new MeettingInfo(
                 intershipInfo.Title + " " + currentUser.Name,
                 currentUser.CurrentStatus.MeetStartTime.Value.DateTime,
@@ -226,8 +315,12 @@ namespace OuchRBot.API.Services
             {
                 Date = DateTimeOffset.UtcNow,
                 ZoomLink = url.Zoom,
-                MeetCalendarUId = url.Calendar
+                MeetCalendarUId = url.Calendar,
+                MeetStartTime = currentUser.CurrentStatus.MeetStartTime,
+                MeetDuration = currentUser.CurrentStatus.MeetDuration,
+                NewStatus = ProgressStatus.MeetScheduled
             });
+            await dbContext.SaveChangesAsync();
 
             await api.Messages.SendAsync(new MessagesSendParams
             {
@@ -341,7 +434,7 @@ namespace OuchRBot.API.Services
                 await api.Messages.SendAsync(new MessagesSendParams
                 {
                     PeerId = message.Message.PeerId.Value,
-                    Message = $"Уважаемый {user.Name}, пришлите нам ваше резюме, и мы покажем, какие стажировки вам доступны!",
+                    Message = $"Пришлите нам свое резюме в формате PDF, чтобы мы могли предложить интересные вакансии по вашему профилю",
                     RandomId = RandomInt
                 });
                 return;
@@ -368,6 +461,14 @@ namespace OuchRBot.API.Services
 
 
             logger.LogInformation("try to get interships");
+
+            await api.Messages.SendAsync(new MessagesSendParams
+            {
+                PeerId = message.Message.PeerId.Value,
+                Message = $"Пожалуйста, подождите. Работает NLP.",
+                RandomId = RandomInt
+            });
+
             var profileInfo = await profileParser.GetInternshipsAsync(await new HttpClient().GetStreamAsync(resume.Uri));
 
             var keyboardBuilder = new KeyboardBuilder().SetInline();
@@ -464,7 +565,7 @@ namespace OuchRBot.API.Services
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = message.Message.PeerId.Value,
-                Message = "Пожвлуйста, выберите интересующую вас стажировку",
+                Message = "Пожалуйста, выберите интересующую вас стажировку",
                 RandomId = RandomInt
             });
         }
