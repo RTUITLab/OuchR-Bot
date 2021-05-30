@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.33" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="5.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="5.0.6" />
     <PackageReference Include="OneOf" Version="3.0.186" />
