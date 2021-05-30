@@ -1,48 +1,102 @@
 [
   {
-    "Id": 1,
-    "Name": "Макущенко Максим",
-    "VkPeerId": 73739616,
-    "CurrentStatus": {
-      "Id": 4,
-      "Date": "2021-05-29T16:55:42.9820506+00:00",
-      "NewStatus": 3,
-      "ResumeDocVkId": 0,
-      "SelectedIntership": null,
-      "BotUserId": 1
-    },
-    "ChangesHistory": [
+    "id": 2,
+    "name": "Лаптев Иван",
+    "vkPeerId": 210813066,
+    "birthday": null,
+    "education": null,
+    "worExperience": null,
+    "availableInterships": null,
+    "photoUrl": null,
+    "changesHistory": [
       {
-        "Id": 1,
-        "Date": "2021-05-29T10:49:04.7835726+00:00",
-        "NewStatus": 0,
-        "ResumeDocVkId": 0,
-        "SelectedIntership": null,
-        "BotUserId": 1
+        "id": 8,
+        "date": "2021-05-30T00:18:26.9256469+00:00",
+        "newStatus": 0,
+        "resumeDocVkId": 0,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 2
       },
       {
-        "Id": 2,
-        "Date": "2021-05-29T16:55:20.3226548+00:00",
-        "NewStatus": 1,
-        "ResumeDocVkId": 601810349,
-        "SelectedIntership": null,
-        "BotUserId": 1
+        "id": 9,
+        "date": "2021-05-30T00:18:39.9978981+00:00",
+        "newStatus": 1,
+        "resumeDocVkId": 600660119,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 2
       },
       {
-        "Id": 3,
-        "Date": "2021-05-29T16:55:36.3092785+00:00",
-        "NewStatus": 2,
-        "ResumeDocVkId": 0,
-        "SelectedIntership": null,
-        "BotUserId": 1
+        "id": 10,
+        "date": "2021-05-30T00:19:01.8027927+00:00",
+        "newStatus": 2,
+        "resumeDocVkId": 0,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 2
       },
       {
-        "Id": 4,
-        "Date": "2021-05-29T16:55:42.9820506+00:00",
-        "NewStatus": 3,
-        "ResumeDocVkId": 0,
-        "SelectedIntership": null,
-        "BotUserId": 1
+        "id": 14,
+        "date": "2021-05-30T00:19:13.9848334+00:00",
+        "newStatus": 3,
+        "resumeDocVkId": 0,
+        "selectedIntership": "2",
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 2
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Левандровский Александр",
+    "vkPeerId": 322593450,
+    "birthday": null,
+    "education": null,
+    "worExperience": null,
+    "availableInterships": null,
+    "photoUrl": null,
+    "changesHistory": [
+      {
+        "id": 11,
+        "date": "2021-05-30T00:19:03.2501144+00:00",
+        "newStatus": 0,
+        "resumeDocVkId": 0,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 3
+      },
+      {
+        "id": 13,
+        "date": "2021-05-30T00:19:04.0550773+00:00",
+        "newStatus": 2,
+        "resumeDocVkId": 0,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 3
+      },
+      {
+        "id": 12,
+        "date": "2021-05-30T00:19:03.2504252+00:00",
+        "newStatus": 1,
+        "resumeDocVkId": 599340405,
+        "selectedIntership": null,
+        "testResult": null,
+        "meetStartTime": "0001-01-01T00:00:00+00:00",
+        "meetDuration": "00:00:00",
+        "botUserId": 3
       }
     ]
   }

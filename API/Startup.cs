@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace OuchRBot.API
@@ -37,7 +38,7 @@ namespace OuchRBot.API
 
             services.AddDbContext<BotDbContext>(db => db.UseInMemoryDatabase("IN_MEMORY_DB"));
             services.AddScoped<MessageHandlerService>();
-            if (false)
+            if (true)
             {
                 services.AddScoped<IProfileParser, MockProfileParser>();
             }
@@ -45,7 +46,8 @@ namespace OuchRBot.API
             {
                 services.AddScoped<IProfileParser, RealProfileParser>();
             }
-            services.AddControllers();
+            services.AddControllers()
+                .AddNewtonsoftJson(op => op.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });

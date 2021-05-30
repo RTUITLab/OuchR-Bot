@@ -11,6 +11,12 @@ namespace OuchRBot.API.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public long VkPeerId { get; set; }
+        public DateTimeOffset? Birthday { get; set; }
+        public string Education { get; set; }
+        public string WorExperience { get; set; }
+        public string AvailableInterships { get; set; }
+        public string PhotoUrl { get; set; }
+
         [JsonIgnore]
         public BotUserStatusChange CurrentStatus
         {

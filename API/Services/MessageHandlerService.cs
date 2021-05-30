@@ -9,6 +9,7 @@ using OuchRBot.API.Models;
 using OuchRBot.API.Services.RemoteServices.ProfileParser;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -18,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VkNet;
 using VkNet.Abstractions;
+using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model;
 using VkNet.Model.Attachments;
@@ -168,7 +170,8 @@ namespace OuchRBot.API.Services
             var acceptedTime = await profileParser.GetAvailableDates();
             var keyboardBuilder = new KeyboardBuilder().SetInline();
             acceptedTime
-
+                .OrderBy(t => t.from)
+                .ToList()
                 .ForEach(t => keyboardBuilder
                     .AddButton(
                         $"{t.from:dd.MM.yyyy} {DAY_OF_WEEKS[(int)t.from.DayOfWeek]} {t.from:HH:mm}-{t.to:HH:mm}",
@@ -210,7 +213,7 @@ namespace OuchRBot.API.Services
             logger.LogInformation("approve time");
 
             var url = await profileParser.CreateMeeting(new MeettingInfo(
-                currentUser.ChangesHistory.Last(h => h.NewStatus == ProgressStatus.InternshipSelecting).SelectedIntership + " " + currentUser.Name, 
+                currentUser.ChangesHistory.Last(h => h.NewStatus == ProgressStatus.DoingTestCase).SelectedIntership + " " + currentUser.Name, 
                 currentUser.CurrentStatus.MeetStartTime.DateTime,
                 currentUser.CurrentStatus.MeetDuration.TotalMinutes));
 
@@ -313,7 +316,7 @@ namespace OuchRBot.API.Services
             foreach (var intership in profileInfo)
             {
                 keyboardBuilder
-                    .AddButton(intership.Title.Length > 35 ? intership.Title.Substring(0, 35) + "..." : intership.Title, $"{SUBMIT_INTERSHIP}{intership.Url}")
+                    .AddButton(intership.Title.Length > 35 ? intership.Title.Substring(0, 35) + "..." : intership.Title, $"{SUBMIT_INTERSHIP}{intership.Id}")
                     .AddLine();
             }
 
@@ -326,10 +329,27 @@ namespace OuchRBot.API.Services
             await api.Messages.SendAsync(new MessagesSendParams
             {
                 PeerId = message.Message.PeerId.Value,
-                Message = "тут красивое описание каждой ваканчии",
+                Message = BuildIntershipsIntros(profileInfo),
                 RandomId = RandomInt,
                 Keyboard = keyboardBuilder.Build()
             });
+        }
+
+        private string BuildIntershipsIntros(ReadOnlyCollection<Intership> interships)
+        {
+            var builder = new StringBuilder();
+
+            builder.AppendLine("Мы считаем, что вам могут подойти следующие вакансии. Выберите наиболее интересное направление, и мы вышлем тестовое задание, которое нужно будет выполнить в течение 7 дней. Ближе к концу срока мы пришлем напоминание о сдаче.");
+
+            foreach (var intership in interships)
+            {
+                builder.AppendLine();
+                builder.AppendLine(intership.Description);
+                builder.AppendLine(intership.Url);
+            }
+            
+
+            return builder.ToString();
         }
 
         private record ButtonPayload(string Button);
@@ -346,7 +366,8 @@ namespace OuchRBot.API.Services
                 user.ChangesHistory.Add(new BotUserStatusChange
                 {
                     Date = DateTimeOffset.UtcNow,
-                    NewStatus = ProgressStatus.DoingTestCase
+                    NewStatus = ProgressStatus.DoingTestCase,
+                    SelectedIntership = payload.Button.Substring(SUBMIT_INTERSHIP.Length)
                 });
                 await api.Messages.SendAsync(new MessagesSendParams
                 {
@@ -386,12 +407,13 @@ namespace OuchRBot.API.Services
             {
                 return targetUser;
             }
-            var targetUserInfoList = await api.Users.GetAsync(new long[] { peerId });
+            var targetUserInfoList = await api.Users.GetAsync(new long[] { peerId }, ProfileFields.Photo100);
             var targetUserInfo = targetUserInfoList.Single();
             targetUser = new BotUser
             {
                 VkPeerId = peerId,
                 Name = targetUserInfo.LastName + " " + targetUserInfo.FirstName,
+                PhotoUrl = targetUserInfo.Photo100.ToString(),
                 ChangesHistory = new List<BotUserStatusChange>
                 {
                     new BotUserStatusChange
