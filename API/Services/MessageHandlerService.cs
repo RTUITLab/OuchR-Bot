@@ -522,7 +522,7 @@ namespace OuchRBot.API.Services
             if (payload.Button?.StartsWith(SUBMIT_INTERSHIP) == true)
             {
                 var uploadedDocument = await api.LoadDocumentToChatAsync(
-                    await new HttpClient().GetStreamAsync("http://localhost:5000/MarkdownExample.pdf"),
+                    await new HttpClient().GetStreamAsync("https://pdfgeneratorapi.com/example-documents/99346/pdf"),
                     DocMessageType.Doc,
                     message.Message.PeerId.Value,
                     $"Тестовое задание.pdf");
