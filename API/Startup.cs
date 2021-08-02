@@ -39,7 +39,7 @@ namespace OuchRBot.API
 
             services.AddDbContext<BotDbContext>(db => db.UseInMemoryDatabase("IN_MEMORY_DB"));
             services.AddScoped<MessageHandlerService>();
-            if (false)
+            if (Configuration.GetValue<bool>("USE_MOCK_PROFILE_PARSER_SERVICE"))
             {
                 services.AddScoped<IProfileParser, MockProfileParser>();
             }
@@ -47,7 +47,7 @@ namespace OuchRBot.API
             {
                 services.AddScoped<IProfileParser, RealProfileParser>();
             }
-            if (true)
+            if (Configuration.GetValue<bool>("DUMP_JSON_DATABASE"))
             {
                 services.AddHostedService<Dumper>();
             }
@@ -61,11 +61,13 @@ namespace OuchRBot.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceScopeFactory serviceScopeFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
+            IServiceScopeFactory serviceScopeFactory,
+            ILogger<Startup> logger)
         {
             using (var scope = serviceScopeFactory.CreateScope())
             {
-                SeedDb(scope.ServiceProvider.GetRequiredService<BotDbContext>());
+                SeedDb(scope.ServiceProvider.GetRequiredService<BotDbContext>(), logger);
             }
             if (env.IsDevelopment())
             {
@@ -85,11 +87,28 @@ namespace OuchRBot.API
             });
         }
 
-        private void SeedDb(BotDbContext botDbContext)
+        private void SeedDb(BotDbContext botDbContext, ILogger<Startup> logger)
         {
-            var users = JsonConvert.DeserializeObject<List<BotUser>>(File.ReadAllText("dbExport.json"));
+            var fileWithDump = "dbExport.json";
+            if (!File.Exists(fileWithDump))
+            {
+                logger.LogWarning($"There is no dump file '{fileWithDump}'");
+                return;
+            }
+            var dumpText = File.ReadAllText(fileWithDump);
+            List<BotUser> users;
+            try
+            {
+                users = JsonConvert.DeserializeObject<List<BotUser>>(dumpText);
+            }
+            catch
+            {
+                logger.LogError($"File '{fileWithDump}' contains incorrect data");
+                return;
+            }
             botDbContext.Users.AddRange(users);
             botDbContext.SaveChanges();
+            logger.LogInformation($"Data from '{fileWithDump}' was successfully restored");
         }
     }
 }

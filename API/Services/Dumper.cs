@@ -29,10 +29,14 @@ namespace OuchRBot.API.Services
             {
                 try
                 {
-
                     await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
                     var dump = await client.GetStringAsync("http://localhost:5000/api/Debug/exportDb", stoppingToken);
-                    File.WriteAllText(TargetFile, dump);
+                    await File.WriteAllTextAsync(TargetFile, dump, stoppingToken);
+                    logger.LogDebug("Data was dumped");
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Dumper was cancelled");
                 }
                 catch (Exception ex)
                 {
