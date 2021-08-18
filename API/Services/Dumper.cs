@@ -1,5 +1,9 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using OuchRBot.API.Database;
+using OuchRBot.API.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,10 +16,12 @@ namespace OuchRBot.API.Services
 {
     public class Dumper : BackgroundService
     {
+        private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly ILogger<Dumper> logger;
 
-        public Dumper(ILogger<Dumper> logger)
+        public Dumper(IServiceScopeFactory serviceScopeFactory, ILogger<Dumper> logger)
         {
+            this.serviceScopeFactory = serviceScopeFactory;
             this.logger = logger;
         }
         //private string TargetFile => $"Dumps/{DateTimeOffset.Now:HH-mm-ss}.json";
@@ -23,8 +29,9 @@ namespace OuchRBot.API.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var client = new HttpClient();
             logger.LogInformation("Starting");
+            await ReadDump();
+            var client = new HttpClient();
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -43,6 +50,31 @@ namespace OuchRBot.API.Services
                     logger.LogWarning(ex, "error while dump");
                 }
             }
+        }
+
+        private async Task ReadDump()
+        {
+            if (!File.Exists(TargetFile))
+            {
+                logger.LogWarning($"There is no dump file '{TargetFile}'");
+                return;
+            }
+            var dumpText = await File.ReadAllTextAsync(TargetFile);
+            List<BotUser> users;
+            try
+            {
+                users = JsonConvert.DeserializeObject<List<BotUser>>(dumpText);
+            }
+            catch
+            {
+                logger.LogError($"File '{TargetFile}' contains incorrect data");
+                return;
+            }
+            using var scope = serviceScopeFactory.CreateScope();
+            using var botDbContext  = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+            botDbContext.Users.AddRange(users);
+            await botDbContext.SaveChangesAsync();
+            logger.LogInformation($"Data from '{TargetFile}' was successfully restored");
         }
     }
 }

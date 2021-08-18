@@ -61,14 +61,8 @@ namespace OuchRBot.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
-            IServiceScopeFactory serviceScopeFactory,
-            ILogger<Startup> logger)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            using (var scope = serviceScopeFactory.CreateScope())
-            {
-                SeedDb(scope.ServiceProvider.GetRequiredService<BotDbContext>(), logger);
-            }
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -85,30 +79,6 @@ namespace OuchRBot.API
             {
                 endpoints.MapControllers();
             });
-        }
-
-        private void SeedDb(BotDbContext botDbContext, ILogger<Startup> logger)
-        {
-            var fileWithDump = "dbExport.json";
-            if (!File.Exists(fileWithDump))
-            {
-                logger.LogWarning($"There is no dump file '{fileWithDump}'");
-                return;
-            }
-            var dumpText = File.ReadAllText(fileWithDump);
-            List<BotUser> users;
-            try
-            {
-                users = JsonConvert.DeserializeObject<List<BotUser>>(dumpText);
-            }
-            catch
-            {
-                logger.LogError($"File '{fileWithDump}' contains incorrect data");
-                return;
-            }
-            botDbContext.Users.AddRange(users);
-            botDbContext.SaveChanges();
-            logger.LogInformation($"Data from '{fileWithDump}' was successfully restored");
         }
     }
 }
