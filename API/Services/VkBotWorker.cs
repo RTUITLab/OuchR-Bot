@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using VkNet.Abstractions;
 using VkNet.Enums.SafetyEnums;
 using VkNet.FluentCommands.GroupBot;
+using VkNet.Model;
 using VkNet.Model.GroupUpdate;
 using VkNet.Model.Keyboard;
 using VkNet.Model.RequestParams;
@@ -35,6 +36,22 @@ namespace OuchRBot.API.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             FluentGroupBotCommands commands = new();
+
+            try
+            {
+                var vkApi = new VkNet.VkApi();
+                await vkApi.AuthorizeAsync(new ApiAuthParams
+                {
+                    AccessToken = options.Value.GroupAccessToken
+                });
+                var groupInfoCollection = await vkApi.Groups.GetByIdAsync(null, options.Value.GroupId.ToString(), null);
+                var targetGroup = groupInfoCollection.Single();
+                logger.LogInformation($"Group name is { targetGroup.Name }");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "error while read group info");
+            }
 
             commands.ConfigureGroupLongPoll(options.Value.GroupId);
 

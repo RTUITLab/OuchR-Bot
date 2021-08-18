@@ -14,9 +14,4 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
     <PackageReference Include="VkNet.FluentCommands.GroupBot" Version="2.1.0" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Dumps\" />
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
 </Project>
