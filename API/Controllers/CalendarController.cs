@@ -47,7 +47,8 @@ namespace OuchRBot.API.Controllers
             var calendarRawContent = await new HttpClient().GetStringAsync(options.Value.GoogleCalendarUrl);
             var calendar = Calendar.Load(calendarRawContent);
             return calendar.Events
-                .Select(e => new CalendarEvent(ConvertTitle(e.Summary), e.Description,  e.Start.AsDateTimeOffset, e.End.AsDateTimeOffset, 
+                .Select(e => new CalendarEvent(ConvertTitle(e.Summary), e.Description, e.Start.AsDateTimeOffset,
+                    e.End?.AsDateTimeOffset ?? (e.IsAllDay ? e.Start.AsDateTimeOffset + TimeSpan.FromDays(1) : e.Start.AsDateTimeOffset),
                 selection.TryGetValue(e.Uid, out long id) ? id : null)).ToList();
         }
     }
